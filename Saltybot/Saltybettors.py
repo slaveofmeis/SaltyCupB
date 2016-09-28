@@ -5,11 +5,18 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from Saltymodule import check_exists_by_xpath, clean_send_keys
+from Saltymodule import check_exists_by_xpath, clean_send_keys #, get_web_address
 import SaltyDiscord
-
+from pyvirtualdisplay import Display
+from pymongo import MongoClient
 class Saltybettor(object):
+    # class variables shared among all Saltybettors
+    client = MongoClient()
+    db = client.saltydb
+    bets_coll = db.bets
+    chrome_driver_path = "/home/ubuntu/"
     salty_url = "https://www.saltybet.com/"
+    #web_address = get_web_address()
     """description of class"""
     def __init__(self, username, password):
         self.current_balance = -1
@@ -17,12 +24,16 @@ class Saltybettor(object):
         self.sleep_counter = 0
         self.username = username
         self.password = password
-        self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', desired_capabilities=DesiredCapabilities.CHROME)
+        self.display = Display(visible=0, size=(800,800))
+        self.display.start()
+        self.driver = webdriver.Chrome(Saltybettor.chrome_driver_path+"chromedriver")
+        #self.driver = webdriver.Remote(command_executor='http://localhost:4444/wd/hub', desired_capabilities=DesiredCapabilities.CHROME)
         self.login(self.driver, self.username, self.password)
         self.current_balance = self.get_balance(self.driver)
         self.type = ""
         self.desc = ""
-        self.status_message("Balance: " + "$" + str(self.current_balance))
+        print("Balance: " + "$" + str(self.current_balance))
+        SaltyDiscord.build_message("Balance: " + "$" + str(self.current_balance))
         SaltyDiscord.send_message()
     def login(self, driver, username, password):
         try:
@@ -37,8 +48,9 @@ class Saltybettor(object):
             member_name_field = WebDriverWait(driver, timeout_secs).until(EC.presence_of_element_located((By.XPATH, "//li[@class='nav-image']/h2/span[@class='navbar-text']")))
             self.name = member_name_field.text.split('(')[0].strip()
             self.pause_media()
-            self.status_message(self.name + " logged in.")
-            
+            print(self.name + " logged in.")
+            SaltyDiscord.build_message(self.name + " logged in.")
+            #SaltyDiscord.build_message(Saltybettor.web_address)           
         except TimeoutException:
             print("Timeout logging in.")
             driver.close()
@@ -47,11 +59,7 @@ class Saltybettor(object):
         #    print("Unexpected error:", sys.exc_info()[0])
         #    driver.close()
         #    raise
-
-    def status_message(self, message):
-        print(message)
-        SaltyDiscord.build_message(message)
-
+    
     def pause_media(self):
         try:
             self.driver.execute_script("return document.getElementById('stream').innerHTML=\"\"")
@@ -79,7 +87,7 @@ class Saltybettor(object):
             return int(balance_text)
         else:
             print("Something weird happened when getting your balance: " + balance_text)
-            time.sleep(5)
+            time.sleep(10)
             return -1
 
     def get_wager_field(self, driver):
@@ -120,7 +128,8 @@ class Saltybettor(object):
             self.display_bet_preparation()
             bet_decision_dict = self.bet_decision()
             bet_amount = bet_decision_dict['amount']
-            self.status_message("This bot is going to bet $" + str(int(bet_amount)))
+            print("This bot is going to bet $" + str(int(bet_amount)))
+            SaltyDiscord.build_message("This bot is going to bet $" + str(int(bet_amount)))
             bet_side = bet_decision_dict['side']
             self.input_bet_amount(self.driver, bet_amount)
             if bet_side == True: # True = Red, False = Blue
@@ -129,7 +138,10 @@ class Saltybettor(object):
                 self.bet_player_blue(self.driver)
             self.check_bet_successful(self.driver)
             self.pause_media()
+            #SaltyDiscord.build_message(Saltybettor.web_address)
             SaltyDiscord.send_message()
+            date = os.popen('date +"%x %H:%M"').read().rstrip('\n')
+            Saltybettor.bets_coll.insert_one({"bettor_name":self.name, "bet_date":date, "balance":self.current_balance, "bet_amount":int(bet_amount), "is_tourney":self.check_is_tournament()})
         else:
             #print(self.name + " is sleeping 5 seconds because wager field is not present or because bet is already confirmed.")
             time.sleep(5)
@@ -145,9 +157,12 @@ class Saltybettor(object):
 
     def display_bet_preparation(self):
         print("====")
-        self.status_message(self.name)
-        self.status_message("-> " + self.type)
-        self.status_message("-> " + self.desc)
+        print(self.name)
+        SaltyDiscord.build_message(self.name)
+        print("-> " + self.type)
+        SaltyDiscord.build_message("-> " + self.type)
+        print("-> " + self.desc)
+        SaltyDiscord.build_message("-> " + self.desc)
         self.sleep_counter = 0
         self.previous_balance = self.current_balance
         self.current_balance = self.get_balance(self.driver)
@@ -156,9 +171,11 @@ class Saltybettor(object):
             self.driver.refresh()
             self.current_balance = self.get_balance(self.driver)
             self.pause_media()
-        self.status_message("Balance: $"+str(self.current_balance))
+        print("Balance: $"+str(self.current_balance))
+        SaltyDiscord.build_message("Balance: $"+str(self.current_balance))
         if self.check_is_tournament():
-            self.status_message("Tournament Mode!")
+            print("Tournament Mode!")
+            SaltyDiscord.build_message("Tournament Mode!")
 
     def bet_decision(self):
         return {}
