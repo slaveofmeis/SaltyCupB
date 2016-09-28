@@ -1,0 +1,14 @@
+div(class="navbar navbar-inverse navbar-static-top")
+  div(class="navbar-inner")
+    .container
+      ul.nav(class="nav navbar-nav")
+        li
+          a.header(href='/') #{header}
+        li
+          a(href='/') Home
+        li(class="dropdown")
+          a(href="#", class="dropdown-toggle" data-toggle="dropdown")  Tools
+            b(class="caret")
+          ul(class="dropdown-menu")
+            li
+              a(href="/bethistory") Bet History
