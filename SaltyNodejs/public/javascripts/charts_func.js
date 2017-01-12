@@ -1,6 +1,7 @@
 var socket;
 var normal_bet_data;
 var tourney_bet_data;
+var data_table;
 var default_record_count = 100;
 var saved_record_count = default_record_count;
 var current_bettor = "EMPSiglemic";
@@ -17,9 +18,9 @@ $(document).ready(function() {
 	populateBetData(); 
     });
     showLoaderImages();
-    
+    data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc']});
     google.setOnLoadCallback(populateBetData());
-	setInterval(function(){populateBetData()}, 20000);
+    setInterval(function(){populateBetData()}, 20000);
     });
 
 function showLoaderImages() {
@@ -34,11 +35,12 @@ function populateBetData() {
     var bettorList = '';
     var recordCount = 0;
     $('#bettorHeader').html(current_bettor); 
-    tableContent += '<tr><th>Name</th><th>Bet Datetime (UTC)</th><th>Balance</th><th>Bet Amount</th><th>Tourney</th></tr>'
+    //tableContent += '<tr><th>Name</th><th>Bet Datetime (UTC)</th><th>Balance</th><th>Bet Amount</th><th>Tourney</th></tr>'
     // jQuery AJAX call for JSON
     $.getJSON( '/getbethistory', {requested_bettor: current_bettor, record_number: saved_record_count}, function( data ) {
-	    normal_bet_data = []
-        tourney_bet_data = [] 
+	    normal_bet_data = [];
+            tourney_bet_data = [];
+	    data_table.clear();
 		// For each item in our JSON, add a table row and cells to the content string
 	    $.each(data, function(){
 		if (this.is_tourney) {
@@ -56,10 +58,12 @@ function populateBetData() {
 		tableContent += '<td>$' + this.bet_amount + '</td>';
 		tableContent += '<td>' + this.is_tourney + '</td>';
 		tableContent += '</tr>';
+		data_table.row.add( [this.bettor_name, this.bet_date, this.balance, this.bet_amount, this.is_tourney] );
 		recordCount += 1;
 	    });
-	    $('#recordsHeading').html('Displaying: ' + recordCount + ' bets');
-	    $('#bethistory table tbody').html(tableContent);
+	    data_table.draw();
+	    //$('#recordsHeading').html('Displaying: ' + recordCount + ' bets');
+	    //$('#bethistory table tbody').html(tableContent);
         drawChart();
 	});
     $.getJSON('/getbettors', function(data) {

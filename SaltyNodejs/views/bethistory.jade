@@ -4,14 +4,16 @@ block content
     script(src='//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js')
     script(src='https://www.google.com/jsapi', type="text/javascript")
     script(src='/javascripts/charts_func.js')
+    script(src='https://cdn.datatables.net/1.10.13/js/jquery.dataTables.js', type="text/javascript")
+    link(href='https://cdn.datatables.net/1.10.13/css/jquery.dataTables.css', type="text/css", rel="stylesheet")
     .container
       .row
         div(class="col-sm-3 col-md-2 sidebar")
           ul(class="nav nav-sidebar")
-            h4 Bettors
+            h4 Bettors:
             #bettorList
             br
-            h4 Record Count
+            h4 Retrieve:
             button#last100bets(class="btn btn-sm btn-primary") Last 100 bets
             button#maxbets(class="btn btn-sm btn-primary") All bets 
         div(class="col-sm-9 col-md-10 main")
@@ -26,8 +28,14 @@ block content
         .well
           h4
             b#recordsHeading 
-            small  (Most recent first)
+            //small  (Most recent first)
           #bethistory
             table#serverTable(class="table")
               thead
+                tr
+                  th Name
+                  th Datetime (UTC)
+                  th Balance
+                  th Bet Amount
+                  th Tourney
               tbody

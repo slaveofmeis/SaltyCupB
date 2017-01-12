@@ -90,8 +90,8 @@ class Saltybettor(object):
             time.sleep(10)
             return -1
 
-    def get_wager_field(self, driver):
-        return driver.find_element_by_xpath("//input[@id='wager'][contains(@style, 'inline')]")
+#    def get_wager_field(self, driver):
+#        return driver.find_element_by_xpath("//input[@id='wager'][contains(@style, 'inline')]")
     
 
     def input_bet_amount(self, driver, bet_amount):
@@ -105,13 +105,17 @@ class Saltybettor(object):
 
     def bet_player_red(self, driver):
         try:
-            driver.find_element_by_xpath("//input[@id='player1']").click()
+            bet_timeout_secs = 1800
+            red_button = WebDriverWait(driver, bet_timeout_secs).until(EC.presence_of_element_located((By.XPATH, "//input[@id='player1']")))
+            red_button.click()
         except ElementNotVisibleException:
             pass
 
     def bet_player_blue(self, driver):
         try:
-            driver.find_element_by_xpath("//input[@id='player2']").click()
+            bet_timeout_secs = 1800
+            blue_button = WebDriverWait(driver, bet_timeout_secs).until(EC.presence_of_element_located((By.XPATH, "//input[@id='player2']")))
+            blue_button.click()
         except ElementNotVisibleException:
             pass
 
@@ -140,7 +144,7 @@ class Saltybettor(object):
             self.pause_media()
             #SaltyDiscord.build_message(Saltybettor.web_address)
             SaltyDiscord.send_message()
-            date = os.popen('date +"%x %H:%M"').read().rstrip('\n')
+            date = os.popen('date +"%Y/%m/%d %H:%M"').read().rstrip('\n')
             Saltybettor.bets_coll.insert_one({"bettor_name":self.name, "bet_date":date, "balance":self.current_balance, "bet_amount":int(bet_amount), "is_tourney":self.check_is_tournament()})
         else:
             #print(self.name + " is sleeping 5 seconds because wager field is not present or because bet is already confirmed.")
