@@ -18,7 +18,7 @@ $(document).ready(function() {
 	populateBetData(); 
     });
     showLoaderImages();
-    data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc']});
+    data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc'],columns:[{data:'bettor_name'},{data:'bet_date'},{data:'balance'},{data:'bet_amount'},{data:'is_tourney'}]});
     google.setOnLoadCallback(populateBetData());
     setInterval(function(){populateBetData()}, 20000);
     });
@@ -42,7 +42,30 @@ function populateBetData() {
             tourney_bet_data = [];
 	    data_table.clear();
 		// For each item in our JSON, add a table row and cells to the content string
+	    var interval = Math.floor(data.length/100); // limit to 100 data points on visualization graph, but the latest bet is always shown since it is at index 0
+	    for(var i=0; i<data.length;i=i+interval) {
+		if (data[i].is_tourney) {
+		    normal_bet_data.push([data[i].bet_date, 0]);
+		    tourney_bet_data.push([data[i].bet_date, data[i].balance]);
+		    // add in the oldest element if it will be skipped next iteration
+		    if(i+interval > data.length-1) { 
+			normal_bet_data.push([data[data.length-1].bet_date, 0]);
+			tourney_bet_data.push([data[data.length-1].bet_date, data[data.length-1].balance]);
+		    }
+                }
+                else {
+		    normal_bet_data.push([data[i].bet_date, data[i].balance]);
+		    tourney_bet_data.push([data[i].bet_date, 0]);
+		    // add in the oldest element if it will be skipped next iteration
+                    if(i+interval > data.length-1) {
+			normal_bet_data.push([data[data.length-1].bet_date, data[data.length-1].balance]);
+			tourney_bet_data.push([data[data.length-1].bet_date, 0]);
+		    }
+                }
+	    }
+	    /*
 	    $.each(data, function(){
+		
 		if (this.is_tourney) {
                     normal_bet_data.push([this.bet_date, 0]);
                     tourney_bet_data.push([this.bet_date, this.balance]);
@@ -58,13 +81,13 @@ function populateBetData() {
 		tableContent += '<td>$' + this.bet_amount + '</td>';
 		tableContent += '<td>' + this.is_tourney + '</td>';
 		tableContent += '</tr>';
-		data_table.row.add( [this.bettor_name, this.bet_date, this.balance, this.bet_amount, this.is_tourney] );
 		recordCount += 1;
-	    });
+	    }); */
+	    data_table.rows.add(data);
 	    data_table.draw();
 	    //$('#recordsHeading').html('Displaying: ' + recordCount + ' bets');
 	    //$('#bethistory table tbody').html(tableContent);
-        drawChart();
+            drawChart();
 	});
     $.getJSON('/getbettors', function(data) {
 	$.each(data, function(index, value){
@@ -101,7 +124,7 @@ function drawChart() {
     legend: { position: 'top'},
     hAxis: { textStyle: { fontSize: 10 }, title: 'Time (UTC)' },
     chartArea: { height: '60%' },
-    height:400
+    height:400,
     };
     var tourney_options = {
     legend: { position: 'top'},
