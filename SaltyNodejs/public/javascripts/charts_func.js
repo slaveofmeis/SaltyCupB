@@ -18,7 +18,7 @@ $(document).ready(function() {
 	populateBetData(); 
     });
     showLoaderImages();
-    data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc'],columns:[{data:'bettor_name'},{data:'bet_date'},{data:'balance'},{data:'bet_amount'},{data:'is_tourney'}]});
+    //data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc'],serverSide: true, ajax: '/testme', columns:[{data:'bettor_name'},{data:'bet_date'},{data:'balance'},{data:'bet_amount'},{data:'is_tourney'}]});
     google.setOnLoadCallback(populateBetData());
     setInterval(function(){populateBetData()}, 20000);
     });
@@ -39,8 +39,19 @@ function populateBetData() {
     // jQuery AJAX call for JSON
     $.getJSON( '/getbethistory', {requested_bettor: current_bettor, record_number: saved_record_count}, function( data ) {
 	    normal_bet_data = [];
-            tourney_bet_data = [];
-	    data_table.clear();
+        tourney_bet_data = [];
+		if (data_table != null) { data_table.destroy(); }
+		if(saved_record_count < 0) { // do server side processing when returning all records
+			data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc'],"processing": true, "serverSide": true, "ajax":{ "url": '/betprocessing',
+					"data": function ( d ) { d.requested_bettor = current_bettor; d.record_number = saved_record_count; }}, 
+					"columns":[{"data":"bettor_name"},{"data":"bet_date"},{"data":"balance"},{"data":"bet_amount"},{"data":"is_tourney"}]});
+		}
+		else { // client side processing of records into datatable
+			data_table = $('#serverTable').DataTable({"searching":false,"order":[1,'desc'],columns:[{data:'bettor_name'},{data:'bet_date'},{data:'balance'},{data:'bet_amount'},{data:'is_tourney'}]});
+			data_table.clear();
+			data_table.rows.add(data);
+        	data_table.draw();		
+		}	
 		// For each item in our JSON, add a table row and cells to the content string
 	    var interval = Math.floor(data.length/100); // limit to 100 data points on visualization graph, but the latest bet is always shown since it is at index 0
 	    for(var i=0; i<data.length;i=i+interval) {
@@ -83,8 +94,6 @@ function populateBetData() {
 		tableContent += '</tr>';
 		recordCount += 1;
 	    }); */
-	    data_table.rows.add(data);
-	    data_table.draw();
 	    //$('#recordsHeading').html('Displaying: ' + recordCount + ' bets');
 	    //$('#bethistory table tbody').html(tableContent);
             drawChart();
